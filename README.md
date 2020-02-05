@@ -1,2 +1,2 @@
-# COEN 6331
+# COEN
 Neural Network
