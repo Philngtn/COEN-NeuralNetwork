@@ -1,0 +1,70 @@
+import numpy as np 
+import matplotlib.pyplot as plt
+import Number_data as nbdt
+from Number_data import corrupted_pattern
+
+learning_rate = 1
+width = 10
+height= 12
+reserved_pixel = 0.2
+
+pattern = np.copy(nbdt.pattern_9)
+pattern_label = 9
+#create Weight
+W = np.matrix(pattern).T * pattern
+#Zeros the diagonal
+np.fill_diagonal(W,0)
+
+# plt.imshow(W)
+# plt.colorbar()
+# plt.show()
+
+def energy(state, W):
+    return float(-0.5 * state @ W @ state)
+def addnoise(state,sigma):
+    return np.sign(state + sigma*np.random.randn(height*width))
+    
+corrupted = corrupted_pattern(pattern,reserved_pixel) 
+corrupted = addnoise(corrupted,1)
+
+ev = []
+en = []
+energy_old = 0
+energy_new = energy(corrupted, W)
+
+steps = 10
+iteration = 0
+
+# we keep running until we reach the lowest energy level
+while energy_old > energy_new and iteration < steps:
+    iteration += 1
+    energy_old = energy_new
+    ev.append(np.copy(corrupted))
+    en.append(energy_old)
+    # -------------------------------------------------
+    # Asynchronous update 
+    for pixel in np.split(np.random.randint(0,len(corrupted),width*height), 10):
+       corrupted[pixel] = np.sign(W[pixel,:] @ corrupted)
+    # -------------------------------------------------
+    # Synchronous update
+    # corrupted = np.asarray(np.sign(W @ corrupted)).reshape(-1)
+    # -------------------------------------------------
+    energy_new = energy(corrupted, W)
+
+print('Stopped at iteration {}'.format(iteration))
+
+
+show_every = 1
+print(int(len(ev)//show_every))
+
+fig, ax = plt.subplots(1,int(len(ev)//show_every))
+axes = ax.ravel()
+fig.suptitle('Reconstruct pattern {} lowering network energy'.format(pattern_label))
+plot_idx = 0
+for idx in range(len(ev)):
+    if (idx%show_every)==0:
+        axes[plot_idx].imshow(np.reshape(ev[idx],(12,10)))
+        axes[plot_idx].set_title('Iteration {} \n Net. E: {}'.format(idx, en[idx]))
+        plot_idx += 1
+
+plt.show()
